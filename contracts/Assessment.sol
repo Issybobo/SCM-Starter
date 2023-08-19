@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-//import "hardhat/console.sol";
-
 contract Assessment {
     address payable public owner;
     uint256 public balance;
 
     event Deposit(uint256 amount);
     event Withdraw(uint256 amount);
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     constructor(uint initBalance) payable {
         owner = payable(msg.sender);
@@ -22,20 +22,14 @@ contract Assessment {
     function deposit(uint256 _amount) public payable {
         uint _previousBalance = balance;
 
-        // make sure this is the owner
         require(msg.sender == owner, "You are not the owner of this account");
 
-        // perform transaction
         balance += _amount;
-
-        // assert transaction completed successfully
         assert(balance == _previousBalance + _amount);
 
-        // emit the event
         emit Deposit(_amount);
     }
 
-    // custom error
     error InsufficientBalance(uint256 balance, uint256 withdrawAmount);
 
     function withdraw(uint256 _withdrawAmount) public {
@@ -48,13 +42,28 @@ contract Assessment {
             });
         }
 
-        // withdraw the given amount
         balance -= _withdrawAmount;
-
-        // assert the balance is correct
         assert(balance == (_previousBalance - _withdrawAmount));
 
-        // emit the event
         emit Withdraw(_withdrawAmount);
+    }
+
+    function transfer(address _to, uint256 _value) public {
+        require(_to != address(0), "Invalid recipient address");
+        require(_value > 0, "Value must be greater than zero");
+        require(balance >= _value, "Insufficient balance");
+
+        balance -= _value;
+        emit Transfer(msg.sender, _to, _value);
+    }
+
+    function transferOwnership(address _newOwner) public {
+        require(msg.sender == owner, "You are not the owner of this account");
+        require(_newOwner != address(0), "Invalid new owner address");
+        
+        address previousOwner = owner;
+        owner = payable(_newOwner);
+
+        emit OwnershipTransferred(previousOwner, _newOwner);
     }
 }
